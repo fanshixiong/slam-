@@ -1,0 +1,12 @@
+[
+{
+  "directory": "/data/code/ceres_study/slambook2/ch6/build",
+  "command": "/usr/bin/g++  -I/usr/local/include/eigen3 -I/usr/include/eigen3 -isystem /usr/local/include/opencv -std=c++14 -O3 -O3 -DNDEBUG -o CMakeFiles/gaussNewton.dir/gaussNewton.cpp.o -c /data/code/ceres_study/slambook2/ch6/gaussNewton.cpp",
+  "file": "/data/code/ceres_study/slambook2/ch6/gaussNewton.cpp"
+},
+{
+  "directory": "/data/code/ceres_study/slambook2/ch6/build",
+  "command": "/usr/bin/g++ -DGFLAGS_IS_A_DLL=0 -DGLOG_CUSTOM_PREFIX_SUPPORT -I/usr/local/include/eigen3 -I/usr/include/eigen3 -isystem /usr/local/include/opencv -std=c++14 -O3 -O3 -DNDEBUG -o CMakeFiles/ceresCurveFitting.dir/ceresCurveFitting.cpp.o -c /data/code/ceres_study/slambook2/ch6/ceresCurveFitting.cpp",
+  "file": "/data/code/ceres_study/slambook2/ch6/ceresCurveFitting.cpp"
+}
+]

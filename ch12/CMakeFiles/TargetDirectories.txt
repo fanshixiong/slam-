@@ -1,0 +1,7 @@
+/data/code/ceres_study/slambook2/ch12/CMakeFiles/edit_cache.dir
+/data/code/ceres_study/slambook2/ch12/CMakeFiles/rebuild_cache.dir
+/data/code/ceres_study/slambook2/ch12/dense_RGBD/CMakeFiles/pointcloud_mapping.dir
+/data/code/ceres_study/slambook2/ch12/dense_RGBD/CMakeFiles/octomap_mapping.dir
+/data/code/ceres_study/slambook2/ch12/dense_RGBD/CMakeFiles/surfel_mapping.dir
+/data/code/ceres_study/slambook2/ch12/dense_RGBD/CMakeFiles/edit_cache.dir
+/data/code/ceres_study/slambook2/ch12/dense_RGBD/CMakeFiles/rebuild_cache.dir

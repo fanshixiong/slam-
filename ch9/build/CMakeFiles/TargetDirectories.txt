@@ -1,0 +1,4 @@
+/data/code/ceres_study/slambook2/ch9/build/CMakeFiles/bal_common.dir
+/data/code/ceres_study/slambook2/ch9/build/CMakeFiles/bundle_adjustment_ceres.dir
+/data/code/ceres_study/slambook2/ch9/build/CMakeFiles/edit_cache.dir
+/data/code/ceres_study/slambook2/ch9/build/CMakeFiles/rebuild_cache.dir

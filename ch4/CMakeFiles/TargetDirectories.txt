@@ -1,0 +1,6 @@
+/data/code/ceres_study/slambook2/ch4/CMakeFiles/useSophus.dir
+/data/code/ceres_study/slambook2/ch4/CMakeFiles/edit_cache.dir
+/data/code/ceres_study/slambook2/ch4/CMakeFiles/rebuild_cache.dir
+/data/code/ceres_study/slambook2/ch4/example/CMakeFiles/trajectoryError.dir
+/data/code/ceres_study/slambook2/ch4/example/CMakeFiles/edit_cache.dir
+/data/code/ceres_study/slambook2/ch4/example/CMakeFiles/rebuild_cache.dir
