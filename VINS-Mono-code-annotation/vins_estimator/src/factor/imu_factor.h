@@ -16,6 +16,15 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
     IMUFactor(IntegrationBase* _pre_integration):pre_integration(_pre_integration)
     {
     }
+    /**
+     * @brief IMU约束中关于优化变量的雅可比 ，参照公式21-24
+     * 
+     * @param parameters 
+     * @param residuals 
+     * @param jacobians 
+     * @return true 
+     * @return false 
+     */
     virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
     {
 
@@ -61,6 +70,11 @@ class IMUFactor : public ceres::SizedCostFunction<15, 7, 9, 7, 9>
         residual = pre_integration->evaluate(Pi, Qi, Vi, Bai, Bgi,
                                             Pj, Qj, Vj, Baj, Bgj);
 
+        /**
+         * @brief sqrt_info作用：ceres只接受最小二乘优化，也就是min(e^T*e)，所以将P^(-1)做LLT分解，即LL^T = P^(-1)
+         *                         d = r^T*L*L^T*r = (L^T*r)^T * (L^T*r) 转化成了最小二乘
+         *                         r' = L^T * r， 就能用ceres求解
+         */
         Eigen::Matrix<double, 15, 15> sqrt_info = Eigen::LLT<Eigen::Matrix<double, 15, 15>>(pre_integration->covariance.inverse()).matrixL().transpose();
         //sqrt_info.setIdentity();
         residual = sqrt_info * residual;

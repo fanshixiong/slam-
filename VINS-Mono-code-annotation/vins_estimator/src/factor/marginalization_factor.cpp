@@ -106,23 +106,26 @@ void MarginalizationInfo::addResidualBlockInfo(ResidualBlockInfo *residual_block
         parameter_block_idx[reinterpret_cast<long>(addr)] = 0;
     }
 }
-
+/**
+ * @brief 将数据和残差进行关联
+ * 
+ */
 void MarginalizationInfo::preMarginalize()
 {
-    for (auto it : factors)
+    for (auto it : factors) // addResidualBlockInfo 中将不同的残差块加入到factor中
     {
-        it->Evaluate();
+        it->Evaluate();  //多态 分别计算所有状态变量的残差和雅可比
 
         std::vector<int> block_sizes = it->cost_function->parameter_block_sizes();
         for (int i = 0; i < static_cast<int>(block_sizes.size()); i++)
         {
-            long addr = reinterpret_cast<long>(it->parameter_blocks[i]);
+            long addr = reinterpret_cast<long>(it->parameter_blocks[i]); //优化变量的地址
             int size = block_sizes[i];
-            if (parameter_block_data.find(addr) == parameter_block_data.end())
+            if (parameter_block_data.find(addr) == parameter_block_data.end()) //parameter_block_data整个优化变量的数据
             {
                 double *data = new double[size];
                 memcpy(data, it->parameter_blocks[i], sizeof(double) * size);
-                parameter_block_data[addr] = data;
+                parameter_block_data[addr] = data; //将优化变量和残差相关联
             }
         }
     }
@@ -173,6 +176,7 @@ void* ThreadsConstructA(void* threadsstruct)
 
 void MarginalizationInfo::marginalize()
 {
+    // 记录一下需要marg的变量和不需要marg的变量
     int pos = 0;
     for (auto &it : parameter_block_idx)
     {
@@ -184,7 +188,7 @@ void MarginalizationInfo::marginalize()
 
     for (const auto &it : parameter_block_size)
     {
-        if (parameter_block_idx.find(it.first) == parameter_block_idx.end())
+        if (parameter_block_idx.find(it.first) == parameter_block_idx.end()) //不是待marg的变量
         {
             parameter_block_idx[it.first] = pos;
             pos += localSize(it.second);
@@ -233,6 +237,7 @@ void MarginalizationInfo::marginalize()
     pthread_t tids[NUM_THREADS];
     ThreadsStruct threadsstruct[NUM_THREADS];
     int i = 0;
+    // 通过多线程计算 各个残差对应的各个优化变量的信息矩阵。
     for (auto it : factors)
     {
         threadsstruct[i].sub_factors.push_back(it);
@@ -253,6 +258,7 @@ void MarginalizationInfo::marginalize()
             ROS_BREAK();
         }
     }
+    // 将各个信息矩阵相加
     for( int i = NUM_THREADS - 1; i >= 0; i--)  
     {
         pthread_join( tids[i], NULL ); 
@@ -264,6 +270,7 @@ void MarginalizationInfo::marginalize()
 
 
     //TODO
+    // 舒尔补
     Eigen::MatrixXd Amm = 0.5 * (A.block(0, 0, m, m) + A.block(0, 0, m, m).transpose());
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> saes(Amm);
 
@@ -280,6 +287,7 @@ void MarginalizationInfo::marginalize()
     A = Arr - Arm * Amm_inv * Amr;
     b = brr - Arm * Amm_inv * bmm;
 
+    // 更新先验残差项
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> saes2(A);
     Eigen::VectorXd S = Eigen::VectorXd((saes2.eigenvalues().array() > eps).select(saes2.eigenvalues().array(), 0));
     Eigen::VectorXd S_inv = Eigen::VectorXd((saes2.eigenvalues().array() > eps).select(saes2.eigenvalues().array().inverse(), 0));

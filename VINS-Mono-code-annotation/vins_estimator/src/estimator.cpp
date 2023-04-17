@@ -80,7 +80,13 @@ void Estimator::clearState()
     drift_correct_r = Matrix3d::Identity();
     drift_correct_t = Vector3d::Zero();
 }
-
+/**
+ * @brief IMU预积分，中值积分得到PVQ，参照公式，
+ * 
+ * @param dt 
+ * @param linear_acceleration 
+ * @param angular_velocity 
+ */
 void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const Vector3d &angular_velocity)
 {
     if (!first_imu) // first_imu == false：未获取第一帧IMU数据
@@ -411,7 +417,12 @@ bool Estimator::initialStructure()
     }
 
 }
-
+/**
+ * @brief 视觉IMU对齐
+ * 
+ * @return true 
+ * @return false 
+ */
 // visual-inertial alignment：视觉SFM的结果与IMU预积分结果对齐
 bool Estimator::visualInitialAlign()
 {
@@ -496,11 +507,23 @@ bool Estimator::visualInitialAlign()
 }
 
 // 在滑动窗口中，寻找与最新帧有足够多数量的特征点对应关系和视差的帧，然后用5点法恢复相对位姿
+/**
+ * @brief 判断两帧有足够视差30且内点数目大于12则可以进行初始化，同时得到R和T
+ *         判断每帧到窗口最后一帧对应特征点的平均视差是否大于30
+ * 
+ * @param relative_R 
+ * @param relative_T 
+ * @param l 
+ * @return true 
+ * @return false 
+ */
 bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
 {
     // find previous frame which contians enough correspondance and parallex with newest frame
+    // 寻找第i帧到窗口最后一帧对应的特征点
     for (int i = 0; i < WINDOW_SIZE; i++)
     {
+        // 计算平均视差
         vector<pair<Vector3d, Vector3d>> corres;
         corres = f_manager.getCorresponding(i, WINDOW_SIZE);
         if (corres.size() > 20)
@@ -509,6 +532,7 @@ bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
             double average_parallax;
             for (int j = 0; j < int(corres.size()); j++)
             {
+                // 第j个对应点在第i帧和最后一帧的（x，y）
                 Vector2d pts_0(corres[j].first(0), corres[j].first(1));
                 Vector2d pts_1(corres[j].second(0), corres[j].second(1));
                 double parallax = (pts_0 - pts_1).norm();
@@ -516,6 +540,8 @@ bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
 
             }
             average_parallax = 1.0 * sum_parallax / int(corres.size());
+
+            // 判断视差大于30并且内点满足要求，同时返回窗口最后一帧到第l帧的Rt
             if(average_parallax * 460 > 30 && m_estimator.solveRelativeRT(corres, relative_R, relative_T))
             {
                 l = i;
@@ -543,6 +569,15 @@ void Estimator::solveOdometry()
     }
 }
 
+// ceres 必须用数组，所以需要转换
+/**
+ * @brief para_pose 6维 相机位姿
+ *        para_SpeedBias 9维 相机速度、加速度偏置、角速度偏置
+ *        para_Ex_Pose 6维 相机IMU外参
+ *        para_Feature 1维 特征点深度
+ *        para_Td 1维  标定时间同步
+ * 
+ */
 void Estimator::vector2double()
 {
     for (int i = 0; i <= WINDOW_SIZE; i++)
@@ -726,6 +761,13 @@ bool Estimator::failureDetection()
     return false;
 }
 
+/**
+ * @brief 后端优化 边缘化 基于滑动窗口紧耦合的非线性优化，残差项的构造和求解
+ *       添加要优化的变量（p,v,q,ba,bg）15个自由度  IMU外参也可以添加进去
+ *       添加残差： 先验残差+IMU残差+视觉残差+闭环检测残差
+ *        根据倒数第二帧是否是关键帧确定边缘化的结果，根据论文，不是关键帧则直接跳过。
+ * 
+ */
 
 void Estimator::optimization()
 {
@@ -883,11 +925,21 @@ void Estimator::optimization()
     double2vector();
 
     TicToc t_whole_marginalization;
+    /**
+     * @brief 总结边缘化添加残差以及优化变量的方法：仿照ceres与后端优化方法类似。
+     *        1. 定义损失函数：对要优化的三个残差项： MarginalizationFactor IMUFactor ProjectionFactor类， 
+     *           继承自ceres::CostFunction，同时对Ealuate函数重载：对传入的优化变量（先验残差、IMU预积分、重投影误差）计算出残差和雅克比
+     *        2. 定义 ResidualBlockInfo
+     *        3. 将定义的residual_block_info添加到marginalization_info：
+     *                                          marginalization_info->addResidualBlockInfo(residual_block_info);
+     * 
+     */
     if (marginalization_flag == MARGIN_OLD)
     {
         MarginalizationInfo *marginalization_info = new MarginalizationInfo();
         vector2double();
 
+        // 添加上一次的先验残差项
         if (last_marginalization_info)
         {
             vector<int> drop_set;
@@ -907,17 +959,20 @@ void Estimator::optimization()
         }
 
         {
+            // 添加第0帧和第1帧之间的IMU预积分值以及相关的优化变量
             if (pre_integrations[1]->sum_dt < 10.0)
             {
                 IMUFactor* imu_factor = new IMUFactor(pre_integrations[1]);
                 ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(imu_factor, NULL,
                                                                            vector<double *>{para_Pose[0], para_SpeedBias[0], para_Pose[1], para_SpeedBias[1]},
                                                                            vector<int>{0, 1});
+
                 marginalization_info->addResidualBlockInfo(residual_block_info);
             }
         }
 
         {
+            // 添加视觉残差
             int feature_index = -1;
             for (auto &it_per_id : f_manager.feature)
             {
@@ -970,9 +1025,11 @@ void Estimator::optimization()
         marginalization_info->marginalize();
         ROS_DEBUG("marginalization %f ms", t_margin.toc());
 
+        // 滑动窗口预移动 调整参数块在下一次窗口中对应的位置
         std::unordered_map<long, double *> addr_shift;
         for (int i = 1; i <= WINDOW_SIZE; i++)
         {
+            // i-1 => i 移动
             addr_shift[reinterpret_cast<long>(para_Pose[i])] = para_Pose[i - 1];
             addr_shift[reinterpret_cast<long>(para_SpeedBias[i])] = para_SpeedBias[i - 1];
         }
@@ -990,12 +1047,13 @@ void Estimator::optimization()
         last_marginalization_parameter_blocks = parameter_blocks;
         
     }
+    // 次新帧不是关键帧
     else
     {
         if (last_marginalization_info &&
             std::count(std::begin(last_marginalization_parameter_blocks), std::end(last_marginalization_parameter_blocks), para_Pose[WINDOW_SIZE - 1]))
         {
-
+            // 保留次新帧的IMU测量，丢弃次新帧的视觉测量，将上一次先验残差项传递给marginalization_info
             MarginalizationInfo *marginalization_info = new MarginalizationInfo();
             vector2double();
             if (last_marginalization_info)
@@ -1026,6 +1084,7 @@ void Estimator::optimization()
             marginalization_info->marginalize();
             ROS_DEBUG("end marginalization, %f ms", t_margin.toc());
             
+            // 调整参数块在下一次窗口中对应的位置（去掉次新帧）
             std::unordered_map<long, double *> addr_shift;
             for (int i = 0; i <= WINDOW_SIZE; i++)
             {

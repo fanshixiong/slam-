@@ -30,12 +30,19 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
     Eigen::Vector3d tic(parameters[2][0], parameters[2][1], parameters[2][2]);
     Eigen::Quaterniond qic(parameters[2][6], parameters[2][3], parameters[2][4], parameters[2][5]);
 
+    // pts_i 是i时刻归一化相机坐标系下的3D坐标
+    // 逆深度
     double inv_dep_i = parameters[3][0];
 
+    // 第i帧相机坐标系下的3D坐标
     Eigen::Vector3d pts_camera_i = pts_i / inv_dep_i;
+    // 第i帧imu坐标系下的3D坐标
     Eigen::Vector3d pts_imu_i = qic * pts_camera_i + tic;
+    // 世界坐标系下的3D坐标
     Eigen::Vector3d pts_w = Qi * pts_imu_i + Pi;
+    // 第j帧imu坐标系下的3D坐标
     Eigen::Vector3d pts_imu_j = Qj.inverse() * (pts_w - Pj);
+    // 第j帧相机坐标系下的3D坐标
     Eigen::Vector3d pts_camera_j = qic.inverse() * (pts_imu_j - tic);
     Eigen::Map<Eigen::Vector2d> residual(residuals);
 
@@ -43,9 +50,11 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
     residual =  tangent_base * (pts_camera_j.normalized() - pts_j.normalized());
 #else
     double dep_j = pts_camera_j.z();
+    // 信息矩阵等于协方差矩阵的逆
     residual = (pts_camera_j / dep_j).head<2>() - pts_j.head<2>();
 #endif
 
+    // LLT转化成ceres最小二乘
     residual = sqrt_info * residual;
 
     if (jacobians)
@@ -53,7 +62,7 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
         Eigen::Matrix3d Ri = Qi.toRotationMatrix();
         Eigen::Matrix3d Rj = Qj.toRotationMatrix();
         Eigen::Matrix3d ric = qic.toRotationMatrix();
-        Eigen::Matrix<double, 2, 3> reduce(2, 3);
+        Eigen::Matrix<double, 2, 3> reduce(2, 3);  //残差对(pts_camera_j)的导数
 #ifdef UNIT_SPHERE_ERROR
         double norm = pts_camera_j.norm();
         Eigen::Matrix3d norm_jaco;
@@ -71,6 +80,8 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
 #endif
         reduce = sqrt_info * reduce;
 
+        // 残差项的雅可比，也就是reduce * jacobain: 即fci对各项的雅可比，链式法则相承
+        // 下面雅可比是公式28
         if (jacobians[0])
         {
             Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> jacobian_pose_i(jacobians[0]);
