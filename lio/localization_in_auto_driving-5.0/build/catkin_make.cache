@@ -1,0 +1,2 @@
+lidar_localization
+-DCATKIN_DEVEL_PREFIX=/home/frans/code/learn_slam/slam-/lio/localization_in_auto_driving-5.0/devel -DCMAKE_INSTALL_PREFIX=/home/frans/code/learn_slam/slam-/lio/localization_in_auto_driving-5.0/install -G Unix Makefiles
