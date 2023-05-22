@@ -148,6 +148,16 @@ bool LoopClosing::DetectNearestKeyFrame(int& key_frame_index) {
     }
 }
 
+/**
+ * @brief scan to map 的匹配，NDT匹配
+ *        JointMap() 历史帧附近的帧 组成地图
+ *        JointScan() 当前帧
+ *        当前帧—>历史地图 scantomap
+ * 
+ * @param key_frame_index 
+ * @return true 
+ * @return false 
+ */
 bool LoopClosing::CloudRegistration(int key_frame_index) {
     // 生成地图
     CloudData::CLOUD_PTR map_cloud_ptr(new CloudData::CLOUD());

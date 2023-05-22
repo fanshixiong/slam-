@@ -43,6 +43,7 @@ bool GNSSData::SyncData(std::deque<GNSSData>& UnsyncedData, std::deque<GNSSData>
             UnsyncedData.pop_front();
             continue;
         }
+        // 数据丢失了
         if (sync_time - UnsyncedData.front().time > 0.2) {
             UnsyncedData.pop_front();
             break;
@@ -56,6 +57,7 @@ bool GNSSData::SyncData(std::deque<GNSSData>& UnsyncedData, std::deque<GNSSData>
     if (UnsyncedData.size() < 2)
         return false;
 
+    // 插值法
     GNSSData front_data = UnsyncedData.at(0);
     GNSSData back_data = UnsyncedData.at(1);
     GNSSData synced_data;
