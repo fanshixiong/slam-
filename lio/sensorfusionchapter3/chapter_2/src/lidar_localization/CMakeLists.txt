@@ -3,8 +3,8 @@ project(lidar_localization)
 
 SET(CMAKE_BUILD_TYPE "Release")
 SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
-add_compile_options(-std=c++11)
-add_definitions(-std=c++11)
+add_compile_options(-std=c++14)
+add_definitions(-std=c++14)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -48,8 +48,8 @@ file(GLOB_RECURSE THIRD_PARTY_SRCS "third_party/*.cpp")
 list(REMOVE_ITEM ALL_SRCS ${NODE_SRCS})
 list(REMOVE_ITEM ALL_SRCS ${THIRD_PARTY_SRCS})
 
-add_executable(test_frame_node src/apps/test_frame_node.cpp ${ALL_SRCS})
-target_link_libraries(test_frame_node ${catkin_LIBRARIES} ${ALL_TARGET_LIBRARIES})
+#add_executable(test_frame_node src/apps/test_frame_node.cpp ${ALL_SRCS})
+#target_link_libraries(test_frame_node ${catkin_LIBRARIES} ${ALL_TARGET_LIBRARIES})
 
 add_executable(data_pretreat_node src/apps/data_pretreat_node.cpp ${ALL_SRCS})
 add_dependencies(data_pretreat_node ${catkin_EXPORTED_TARGETS})
@@ -60,7 +60,7 @@ add_dependencies(front_end_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(front_end_node ${catkin_LIBRARIES} ${ALL_TARGET_LIBRARIES})
 
 add_executable(back_end_node src/apps/back_end_node.cpp ${ALL_SRCS})
-add_dependencies(back_end_node ${catkin_EXPORTED_TARGETS} optimizeMap_gencpp)
+add_dependencies(back_end_node ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(back_end_node ${catkin_LIBRARIES} ${ALL_TARGET_LIBRARIES})
 
 add_executable(loop_closing_node src/apps/loop_closing_node.cpp ${ALL_SRCS})
@@ -68,7 +68,7 @@ add_dependencies(loop_closing_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(loop_closing_node ${catkin_LIBRARIES} ${ALL_TARGET_LIBRARIES})
 
 add_executable(viewer_node src/apps/viewer_node.cpp ${ALL_SRCS})
-add_dependencies(viewer_node ${catkin_EXPORTED_TARGETS} saveMap_gencpp)
+add_dependencies(viewer_node ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(viewer_node ${catkin_LIBRARIES} ${ALL_TARGET_LIBRARIES})
 
 add_executable(matching_node src/apps/matching_node.cpp ${ALL_SRCS})
